@@ -267,3 +267,24 @@ resource "aws_alb" "alb-webapp" {
 output "alb_url" {
     value = "http://${aws_alb.alb-webapp.dns_name}"  
 }
+
+##############################################
+# RDS
+##############################################
+
+resource "aws_db_subnet_group" "dbsubnetgroup" {
+    name = dbsubnetgroup
+    subnet_ids = [ aws_subnet.private-subnet[0].id,aws_subnet.private-subnet[1].id,aws_subnet.private-subnet[2].id,aws_subnet.private-subnet[3].id ]
+}
+
+resource "aws_db_instance" "dblojaonline" {
+    allocated_storage = 10
+    engine = ewef
+    engine_version = ewe
+    instance_class = ef
+    name = dblojaonline
+    username = postgres
+    password = postgres
+    parameter_group_name = eewe
+    db_subnet_group_name = aws_db_subnet_group.dbsubnetgroup.id
+}

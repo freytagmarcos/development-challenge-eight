@@ -151,7 +151,7 @@ resource "aws_security_group_rule" "ecs_egress" {
 
 ## AWS ROLE
 resource "aws_iam_role" "webapp-task-execution-role" {
-    name = "webapp-task-execution-role"
+    name = var.iamrole-name
     assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
 }
 
@@ -187,7 +187,7 @@ resource "aws_ecs_task_definition" "webapp" {
     [
         {
             "name": "webapp",
-            "image": "image:latest",
+            "image": "freytagmarcos/appwed:latest",
             "portMappings": [
                 {
                     "containerPort": 8000
@@ -278,13 +278,25 @@ resource "aws_db_subnet_group" "dbsubnetgroup" {
 }
 
 resource "aws_db_instance" "dblojaonline" {
-    allocated_storage = 10
-    engine = ewef
-    engine_version = ewe
-    instance_class = ef
-    name = dblojaonline
-    username = postgres
-    password = postgres
-    parameter_group_name = eewe
+    name = "dblojaonline"
+    engine = "postgres"
+    engine_version = "14.1"
+    instance_class = "db.t3.small"
+    
+    db_name = "lojaonline"
+    username = "postgres"
+    password = "postgres"
+
+    multi_az = false
+    allocated_storage = 5  
+    storage_type = "io1"
+
+    port = 5432
+    publicly_accessible = false
     db_subnet_group_name = aws_db_subnet_group.dbsubnetgroup.id
+    vpc_security_group_ids = [ aws_security_group.sg-db.id ]
+    
+    provisioner "local-exec" {
+      command = "psql --host=${self.address} --port=${self.port} --user=${self.username} --password=${self.password} < ./schema.sql"
+    }
 }

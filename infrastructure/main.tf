@@ -150,32 +150,32 @@ resource "aws_security_group_rule" "ecs_egress" {
 ##############################################
 
 resource "aws_db_subnet_group" "dbsubnetgroup" {
-    name = dbsubnetgroup
+    name = "dbsubnetgroup"
     subnet_ids = [ aws_subnet.private-subnet[0].id,aws_subnet.private-subnet[1].id,aws_subnet.private-subnet[2].id,aws_subnet.private-subnet[3].id ]
 }
 
 resource "aws_db_instance" "dblojaonline" {
-    name = "dblojaonline"
-    engine = "postgres"
-    engine_version = "14.1"
-    instance_class = "db.t3.small"
+    engine = var.db-engine
+    engine_version = var.db-engine-version
+    instance_class = var.db-instance-class
     
-    db_name = "lojaonline"
-    username = "postgres"
-    password = "postgres"
+    db_name = var.db-name
+    username = var.db-username
+    password = var.db-password
 
     multi_az = false
-    allocated_storage = 5  
-    storage_type = "io1"
+    allocated_storage = 20  
+    storage_type = "gp2"
 
     port = 5432
-    publicly_accessible = false
+    publicly_accessible = true
     db_subnet_group_name = aws_db_subnet_group.dbsubnetgroup.id
     vpc_security_group_ids = [ aws_security_group.sg-db.id ]
     
     provisioner "local-exec" {
-      command = "psql --host=${self.address} --port=${self.port} --user=${self.username} --password=${self.password} < ./schema.sql"
+      command = "psql --host=${self.address} --port=${self.port} --username=${self.username} --password=${self.password} < ./schema.sql"
     }
+    skip_final_snapshot = true
 }
 
 ##############################################
@@ -224,11 +224,17 @@ resource "aws_ecs_task_definition" "webapp" {
     [
         {
             "name": "webapp",
-            "image": "freytagmarcos/appweb:latest",
+            "image": "ghcr.io/freytagmarcos/appweb:latest",
             "portMappings": [
                 {
                     "containerPort": 8000
                 }
+            ],
+            "environmentVariables": [
+                "host": "${aws_db_instance.dblojaonline.address}"
+                "dbname": "${var.db-name}"
+                "user": "${var.db-username}"
+                "password": "${var.db-password}"
             ],
             "logConfiguration": {
                 "logDriver": "awslogs",
@@ -281,7 +287,7 @@ resource "aws_lb_target_group" "webapp" {
     protocol = "HTTP"
     target_type = "ip"
     vpc_id = aws_vpc.vpc-webapp.id
-
+    
     health_check {
         enabled = true
         path = "/"
@@ -297,10 +303,15 @@ resource "aws_alb" "alb-webapp" {
     
     subnets = [ aws_subnet.public-subnet[0].id, aws_subnet.public-subnet[1].id ]
     security_groups = [aws_security_group.sg-web.id]
-    
     depends_on = [aws_internet_gateway.igw-vpc1]
 }
 
-output "alb_url" {
-    value = "http://${aws_alb.alb-webapp.dns_name}"  
+resource "aws_alb_listener" "alb-http" {
+    load_balancer_arn = aws_alb.alb-webapp.arn
+    port = "80"
+    protocol = "HTTP"
+    default_action {
+        type = "forward"
+        target_group_arn = aws_lb_target_group.webapp.arn
+    }
 }

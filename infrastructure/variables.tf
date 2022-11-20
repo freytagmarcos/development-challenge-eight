@@ -22,5 +22,29 @@ variable "availability_zone" {
 }
 
 variable "iamrole-name" {
-  default = "webapp-task-execution-role"
+    default = "webapp-task-execution-role"
+}
+
+variable "db-engine" {
+    default = "postgres"
+}
+
+variable "db-name" {
+    default = "lojaonline"
+}
+
+variable "db-username" {
+    default = "postgres"
+}
+
+variable "db-password" {
+    default = "Csr3q9dwnRrZiSS"
+}
+
+variable "db-engine-version" {
+    default = "14.1"
+}
+
+variable "db-instance-class" {
+    default = "db.t3.micro"
 }

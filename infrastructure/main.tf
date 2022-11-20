@@ -146,6 +146,43 @@ resource "aws_security_group_rule" "ecs_egress" {
 
 
 ##############################################
+# RDS
+##############################################
+
+resource "aws_db_subnet_group" "dbsubnetgroup" {
+    name = dbsubnetgroup
+    subnet_ids = [ aws_subnet.private-subnet[0].id,aws_subnet.private-subnet[1].id,aws_subnet.private-subnet[2].id,aws_subnet.private-subnet[3].id ]
+}
+
+resource "aws_db_instance" "dblojaonline" {
+    name = "dblojaonline"
+    engine = "postgres"
+    engine_version = "14.1"
+    instance_class = "db.t3.small"
+    
+    db_name = "lojaonline"
+    username = "postgres"
+    password = "postgres"
+
+    multi_az = false
+    allocated_storage = 5  
+    storage_type = "io1"
+
+    port = 5432
+    publicly_accessible = false
+    db_subnet_group_name = aws_db_subnet_group.dbsubnetgroup.id
+    vpc_security_group_ids = [ aws_security_group.sg-db.id ]
+    
+    provisioner "local-exec" {
+      command = "psql --host=${self.address} --port=${self.port} --user=${self.username} --password=${self.password} < ./schema.sql"
+    }
+}
+
+##############################################
+# ECR
+##############################################
+
+##############################################
 # ECS
 ##############################################
 
@@ -187,7 +224,7 @@ resource "aws_ecs_task_definition" "webapp" {
     [
         {
             "name": "webapp",
-            "image": "freytagmarcos/appwed:latest",
+            "image": "freytagmarcos/appweb:latest",
             "portMappings": [
                 {
                     "containerPort": 8000
@@ -266,37 +303,4 @@ resource "aws_alb" "alb-webapp" {
 
 output "alb_url" {
     value = "http://${aws_alb.alb-webapp.dns_name}"  
-}
-
-##############################################
-# RDS
-##############################################
-
-resource "aws_db_subnet_group" "dbsubnetgroup" {
-    name = dbsubnetgroup
-    subnet_ids = [ aws_subnet.private-subnet[0].id,aws_subnet.private-subnet[1].id,aws_subnet.private-subnet[2].id,aws_subnet.private-subnet[3].id ]
-}
-
-resource "aws_db_instance" "dblojaonline" {
-    name = "dblojaonline"
-    engine = "postgres"
-    engine_version = "14.1"
-    instance_class = "db.t3.small"
-    
-    db_name = "lojaonline"
-    username = "postgres"
-    password = "postgres"
-
-    multi_az = false
-    allocated_storage = 5  
-    storage_type = "io1"
-
-    port = 5432
-    publicly_accessible = false
-    db_subnet_group_name = aws_db_subnet_group.dbsubnetgroup.id
-    vpc_security_group_ids = [ aws_security_group.sg-db.id ]
-    
-    provisioner "local-exec" {
-      command = "psql --host=${self.address} --port=${self.port} --user=${self.username} --password=${self.password} < ./schema.sql"
-    }
 }

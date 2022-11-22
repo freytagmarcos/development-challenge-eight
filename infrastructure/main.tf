@@ -171,16 +171,43 @@ resource "aws_db_instance" "dblojaonline" {
     publicly_accessible = true
     db_subnet_group_name = aws_db_subnet_group.dbsubnetgroup.id
     vpc_security_group_ids = [ aws_security_group.sg-db.id ]
-    
-    provisioner "local-exec" {
-      command = "psql --host=${self.address} --port=${self.port} --username=${self.username} --password=${self.password} < ./schema.sql"
-    }
     skip_final_snapshot = true
 }
 
 ##############################################
 # ECR
 ##############################################
+
+resource "aws_ecr_repository" "webapp-repository" {
+    name = "webapp-repository"
+    image_tag_mutability = "MUTABLE"
+}
+
+resource "aws_ecr_repository_policy" "webapp-repo-policy" {
+  repository = aws_ecr_repository.webapp-repository.name
+  policy     = <<EOF
+  {
+    "Version": "2008-10-17",
+    "Statement": [
+      {
+        "Sid": "adds full ecr access to the webapp repository",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:CompleteLayerUpload",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetLifecyclePolicy",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart"
+        ]
+      }
+    ]
+  }
+  EOF
+}
 
 ##############################################
 # ECS
@@ -230,11 +257,23 @@ resource "aws_ecs_task_definition" "webapp" {
                     "containerPort": 8000
                 }
             ],
-            "environmentVariables": [
-                "host": "${aws_db_instance.dblojaonline.address}"
-                "dbname": "${var.db-name}"
-                "user": "${var.db-username}"
-                "password": "${var.db-password}"
+            "environment": [
+                {
+                    "name": "host",
+                    "value": "${aws_db_instance.dblojaonline.address}"
+                },
+                {
+                    "name": "dbname",
+                    "value": "${var.db-name}"
+                },
+                {
+                    "name": "user",
+                    "value": "${var.db-username}"
+                },
+                {
+                    "name": "password",
+                    "value": "${var.db-password}"
+                }
             ],
             "logConfiguration": {
                 "logDriver": "awslogs",

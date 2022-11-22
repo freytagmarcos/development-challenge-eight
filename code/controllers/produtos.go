@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"aplicacao-web/code/db"
 	"aplicacao-web/code/models"
 	"log"
 	"net/http"
@@ -10,20 +9,8 @@ import (
 )
 
 var temp = template.Must(template.ParseGlob("templates/*.html"))
-var dbcreated = false
 
 func Index(w http.ResponseWriter, r *http.Request) {
-	if dbcreated == false {
-		db := db.ConectaComBancoDeDados()
-		criaBanco, err := db.Prepare("create table if not exists produtos (id serial primary key, nome varchar, descricao varchar, preco decimal, quantidade integer)")
-		if err != nil {
-			log.Println("Erro na criação do banco", err)
-		}
-		criaBanco.Exec()
-
-		defer db.Close()
-		dbcreated = true
-	}
 	todosProdutos := models.BuscaProdutos()
 	temp.ExecuteTemplate(w, "Index", todosProdutos)
 

@@ -53,6 +53,10 @@ resource "aws_route_table_association" "rta-subnet-1" {
 
 resource "aws_route_table" "rtb-webapp-private" {
     vpc_id = aws_vpc.vpc-webapp.id
+    route {
+        cidr_block = "0.0.0.0/0"
+        gateway_id = aws_internet_gateway.igw-vpc1.id
+    }
 }
 
 resource "aws_route_table_association" "rta-subnet-2" {
@@ -144,6 +148,30 @@ resource "aws_security_group_rule" "ecs_egress" {
     security_group_id = aws_security_group.sg-ecs.id
 }
 
+resource "aws_security_group" "sg-bastion" {
+    name = "secgroup-bastion"
+    description = "Allow Bastion Access"
+    vpc_id = aws_vpc.vpc-webapp.id
+}
+
+resource "aws_security_group_rule" "ssh_port-22" {
+    type = "ingress"
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["${var.myip}/32"]
+    security_group_id = aws_security_group.sg-bastion.id
+}
+
+resource "aws_security_group_rule" "bastion_egress" {
+    type = "egress"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    security_group_id = aws_security_group.sg-bastion.id
+}
+
 
 ##############################################
 # RDS
@@ -173,6 +201,41 @@ resource "aws_db_instance" "dblojaonline" {
     vpc_security_group_ids = [ aws_security_group.sg-db.id ]
     skip_final_snapshot = true
 }
+
+##############################################
+# BASTION
+##############################################
+
+resource "aws_instance" "bastion" {
+    depends_on = [aws_db_instance.dblojaonline]
+    instance_type = "t3.micro"
+    ami = "ami-0b0dcb5067f052a63"
+    subnet_id = aws_subnet.public-subnet[0].id
+    security_groups = [aws_security_group.sg-bastion.id]
+    associate_public_ip_address = true
+    key_name = "TESTE"
+    provisioner "file" {
+        content = file("./init-db.sql")
+        destination = "init-db.sql"
+    }
+
+    connection {
+        type        = "ssh"
+        host        = self.public_ip
+        user        = "ec2-user"
+        private_key = file("./TESTE.pem")
+    }
+    provisioner "remote-exec" {
+        inline = [
+            "sudo yum update -y",
+            "sudo amazon-linux-extras enable postgresql14",
+            "sudo yum install postgresql -y",
+            "PGPASSWORD=${var.db-password}  psql -h ${aws_db_instance.dblojaonline.address} -U ${var.db-username} < ./init-db.sql"
+        ]
+    }
+
+}
+
 
 ##############################################
 # ECR

@@ -230,7 +230,7 @@ resource "aws_instance" "bastion" {
             "sudo yum update -y",
             "sudo amazon-linux-extras enable postgresql14",
             "sudo yum install postgresql -y",
-            "PGPASSWORD=${var.db-password}  psql -h ${aws_db_instance.dblojaonline.address} -U ${var.db-username} < ./init-db.sql"
+            "PGPASSWORD=${var.db-password}  psql -h ${aws_db_instance.dblojaonline.address} -U ${var.db-username} -d ${var.db-name} < ./init-db.sql"
         ]
     }
 
@@ -317,7 +317,8 @@ resource "aws_ecs_task_definition" "webapp" {
             "image": "ghcr.io/freytagmarcos/appweb:latest",
             "portMappings": [
                 {
-                    "containerPort": 8000
+                    "containerPort": 8000,
+                    "hostPort": 8000
                 }
             ],
             "environment": [
@@ -341,6 +342,7 @@ resource "aws_ecs_task_definition" "webapp" {
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
+                    "awslogs-create-group": "true",
                     "awslogs-region": "us-east-1",
                     "awslogs-group": "/ecs/webapp",
                     "awslogs-stream-prefix": "ecs"

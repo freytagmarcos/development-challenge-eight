@@ -33,7 +33,7 @@
           },
           {
             "name": "host",
-            "value": "terraform-20221123011856443200000002.ckjqucibhuev.us-east-1.rds.amazonaws.com"
+            "value": "10.0.11.112"
           },
           {
             "name": "password",

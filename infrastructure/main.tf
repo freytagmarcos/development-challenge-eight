@@ -350,10 +350,10 @@ resource "aws_ecs_task_definition" "webapp" {
     EOF
 
     cpu = 512
-
     memory = 1024
     requires_compatibilities = [ "FARGATE" ]
     network_mode = "awsvpc"
+
 }
 
 
@@ -364,7 +364,7 @@ resource "aws_ecs_service" "ecs-webapp" {
     launch_type = "FARGATE"
     desired_count = 1
     network_configuration {
-        assign_public_ip = false
+        assign_public_ip = true
         security_groups = [aws_security_group.sg-ecs.id]
         subnets = [ aws_subnet.private-subnet[0].id, aws_subnet.private-subnet[1].id ]
     }

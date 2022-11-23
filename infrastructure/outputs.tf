@@ -5,3 +5,7 @@ output "rds_name" {
 output "alb_url" {
     value = "http://${aws_alb.alb-webapp.dns_name}"  
 }
+
+output "ecr-repository" {
+    value = aws_ecr_repository.webapp-repository.repository_url
+}

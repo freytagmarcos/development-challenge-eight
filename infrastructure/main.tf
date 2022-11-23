@@ -239,7 +239,7 @@ resource "aws_instance" "bastion" {
 ##############################################
 
 resource "aws_ecr_repository" "webapp-repository" {
-    name = "webapp-repository"
+    name = "webapp"
     image_tag_mutability = "MUTABLE"
 }
 
@@ -311,7 +311,7 @@ resource "aws_ecs_task_definition" "webapp" {
     [
         {
             "name": "webapp",
-            "image": "ghcr.io/freytagmarcos/appweb:latest",
+            "image": "${var.container_image}",
             "portMappings": [
                 {
                     "containerPort": 8000,

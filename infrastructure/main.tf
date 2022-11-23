@@ -214,10 +214,6 @@ resource "aws_instance" "bastion" {
     security_groups = [aws_security_group.sg-bastion.id]
     associate_public_ip_address = true
     key_name = "TESTE"
-    provisioner "file" {
-        content = file("./init-db.sql")
-        destination = "init-db.sql"
-    }
 
     connection {
         type        = "ssh"
@@ -230,6 +226,7 @@ resource "aws_instance" "bastion" {
             "sudo yum update -y",
             "sudo amazon-linux-extras enable postgresql14",
             "sudo yum install postgresql -y",
+            "echo \"create table produtos (id serial primary key, nome varchar, descricao varchar, preco decimal, quantidade integer);\" > ./init-db.sql",
             "PGPASSWORD=${var.db-password}  psql -h ${aws_db_instance.dblojaonline.address} -U ${var.db-username} -d ${var.db-name} < ./init-db.sql"
         ]
     }
@@ -352,8 +349,9 @@ resource "aws_ecs_task_definition" "webapp" {
     ]
     EOF
 
-    cpu = 256
-    memory = 512
+    cpu = 512
+
+    memory = 1024
     requires_compatibilities = [ "FARGATE" ]
     network_mode = "awsvpc"
 }

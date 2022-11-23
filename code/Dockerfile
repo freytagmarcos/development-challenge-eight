@@ -19,4 +19,4 @@ COPY models/ models/
 COPY routes/ routes/
 LABEL Name=aplicacaoweb Version=0.0.1
 EXPOSE 8000
-CMD [ "/app/main" ]
+ENTRYPOINT [ "/app/main" ]

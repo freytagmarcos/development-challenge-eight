@@ -3,7 +3,7 @@ variable "aws_region" {
 }
 
 variable "myip" {
-    default = "200.192.102.12"
+    default = "200.192.99.70"
 }
 
 variable "vpc_cidr" {
@@ -51,4 +51,8 @@ variable "db-engine-version" {
 
 variable "db-instance-class" {
     default = "db.t3.micro"
+}
+
+variable "container_image" {
+    default = "114368227931.dkr.ecr.us-east-1.amazonaws.com/webapp:latest"
 }

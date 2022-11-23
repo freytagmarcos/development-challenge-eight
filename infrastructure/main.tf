@@ -226,7 +226,7 @@ resource "aws_instance" "bastion" {
             "sudo yum update -y",
             "sudo amazon-linux-extras enable postgresql14",
             "sudo yum install postgresql -y",
-            "echo \"create table produtos (id serial primary key, nome varchar, descricao varchar, preco decimal, quantidade integer);\" > ./init-db.sql",
+            "echo 'create table produtos (id serial primary key, nome varchar, descricao varchar, preco decimal, quantidade integer);' > ./init-db.sql",
             "PGPASSWORD=${var.db-password}  psql -h ${aws_db_instance.dblojaonline.address} -U ${var.db-username} -d ${var.db-name} < ./init-db.sql"
         ]
     }

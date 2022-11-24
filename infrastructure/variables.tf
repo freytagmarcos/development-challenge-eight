@@ -60,3 +60,15 @@ variable "container_image" {
 variable "db-identifier" {
     default = "dblojaonline"
 }
+
+variable "appname" {
+    default = "webapp"
+}
+
+variable "domain_name" {
+    default = "marcosfreytag.site"
+}
+
+variable "app-domain_name" {
+    default = "webapp.marcosfreytag.site"
+}

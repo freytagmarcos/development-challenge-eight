@@ -462,11 +462,79 @@ resource "aws_alb_listener" "alb-http" {
     port = "80"
     protocol = "HTTP"
     default_action {
+        type = "redirect"
+        redirect {
+            port = "443"
+            protocol = "HTTPS"
+            status_code = "HTTP_301"
+        }
+    }
+}
+
+resource "aws_alb_listener" "alb-https" {
+    depends_on = [aws_acm_certificate_validation.certificate_validation]
+    load_balancer_arn = aws_alb.alb-webapp.arn
+    port = "443"
+    protocol = "HTTPS"
+    certificate_arn = aws_acm_certificate.webapp-certificate.arn
+    default_action {
         type = "forward"
         target_group_arn = aws_lb_target_group.webapp.arn
     }
 }
 
+#DNS Record
+
+resource "aws_route53_zone" "marcosfreytag_site" {
+    name = var.domain_name
+}
+
+resource "aws_route53_record" "webapp" {
+    allow_overwrite = true
+    name = var.appname
+    type = "CNAME"
+    records = [ aws_alb.alb-webapp.dns_name ]
+    ttl = 60
+    zone_id = aws_route53_zone.marcosfreytag_site.zone_id
+}
+
+# certificate
+resource "aws_acm_certificate" "webapp-certificate" {
+    domain_name =  var.app-domain_name
+    validation_method = "DNS"
+    tags = {
+      Ambiente = "Medcloud-challenge"
+    }
+    lifecycle {
+      create_before_destroy = true
+    }
+}
+
+ resource "aws_route53_record" "certificate-dns_record" {
+    depends_on = [aws_acm_certificate.webapp-certificate]
+    for_each = {
+        for dvo in aws_acm_certificate.webapp-certificate.domain_validation_options : dvo.domain_name => {
+            name   = dvo.resource_record_name
+            record = dvo.resource_record_value
+            type   = dvo.resource_record_type
+        }
+    }
+
+    allow_overwrite = true
+    name = each.value.name
+    records = [each.value.record]
+    ttl = 60
+    type = each.value.type
+    zone_id = aws_route53_zone.marcosfreytag_site.zone_id
+}
+
+resource "aws_acm_certificate_validation" "certificate_validation" {
+    timeouts {
+        create = "5m"
+    }
+    certificate_arn         = aws_acm_certificate.webapp-certificate.arn
+    validation_record_fqdns = [for record in aws_route53_record.certificate-dns_record : record.fqdn]
+}
 
 ##################################
 # Monitoring

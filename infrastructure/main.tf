@@ -6,8 +6,10 @@
 resource "aws_vpc" "vpc-webapp" {
    cidr_block = var.vpc_cidr
    enable_dns_hostnames = true
+
    tags = {
      Name = "VPC-Webapp"
+     Ambiente = "Medcloud-challenge"
    }
 }
 
@@ -53,10 +55,6 @@ resource "aws_route_table_association" "rta-subnet-1" {
 
 resource "aws_route_table" "rtb-webapp-private" {
     vpc_id = aws_vpc.vpc-webapp.id
-    route {
-        cidr_block = "0.0.0.0/0"
-        gateway_id = aws_internet_gateway.igw-vpc1.id
-    }
 }
 
 resource "aws_route_table_association" "rta-subnet-2" {
@@ -111,7 +109,7 @@ resource "aws_security_group_rule" "db_port-5432" {
     from_port = 5432
     to_port = 5432
     protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
     security_group_id = aws_security_group.sg-db.id
 }
 
@@ -134,6 +132,15 @@ resource "aws_security_group_rule" "ecs_port-8000" {
     type = "ingress"
     from_port = 8000
     to_port = 8000
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    security_group_id = aws_security_group.sg-ecs.id
+}
+
+resource "aws_security_group_rule" "ecs_port-443" {
+    type = "ingress"
+    from_port = 443
+    to_port = 443
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     security_group_id = aws_security_group.sg-ecs.id
@@ -196,10 +203,14 @@ resource "aws_db_instance" "dblojaonline" {
     storage_type = "gp2"
 
     port = 5432
-    publicly_accessible = true
+    publicly_accessible = false
     db_subnet_group_name = aws_db_subnet_group.dbsubnetgroup.id
     vpc_security_group_ids = [ aws_security_group.sg-db.id ]
     skip_final_snapshot = true
+    tags = {
+        Name = "dblojaonline"
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 ##############################################
@@ -214,7 +225,6 @@ resource "aws_instance" "bastion" {
     security_groups = [aws_security_group.sg-bastion.id]
     associate_public_ip_address = true
     key_name = "TESTE"
-
     connection {
         type        = "ssh"
         host        = self.public_ip
@@ -366,7 +376,7 @@ resource "aws_ecs_service" "ecs-webapp" {
     network_configuration {
         assign_public_ip = true
         security_groups = [aws_security_group.sg-ecs.id]
-        subnets = [ aws_subnet.private-subnet[0].id, aws_subnet.private-subnet[1].id ]
+        subnets = [ aws_subnet.public-subnet[0].id, aws_subnet.public-subnet[1].id ]
     }
     load_balancer {
         target_group_arn = aws_lb_target_group.webapp.arn
@@ -377,6 +387,9 @@ resource "aws_ecs_service" "ecs-webapp" {
 
 resource "aws_ecs_cluster" "cluster-webapp" {
     name = "cluster-webapp"
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 ##############################################
@@ -406,6 +419,9 @@ resource "aws_alb" "alb-webapp" {
     subnets = [ aws_subnet.public-subnet[0].id, aws_subnet.public-subnet[1].id ]
     security_groups = [aws_security_group.sg-web.id]
     depends_on = [aws_internet_gateway.igw-vpc1]
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 resource "aws_alb_listener" "alb-http" {
@@ -416,4 +432,14 @@ resource "aws_alb_listener" "alb-http" {
         type = "forward"
         target_group_arn = aws_lb_target_group.webapp.arn
     }
+}
+
+
+##################################
+# Monitoring
+##################################
+
+resource "aws_cloudwatch_dashboard" "cloudwatch-dashboard" {
+    dashboard_name = "Dashboard_WEBAPP"
+    dashboard_body =  file("./dashboard.json")
 }

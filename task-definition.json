@@ -33,7 +33,7 @@
           },
           {
             "name": "host",
-            "value": "10.0.10.50"
+            "value": "dblojaonline.ckjqucibhuev.us-east-1.rds.amazonaws.com"
           },
           {
             "name": "password",

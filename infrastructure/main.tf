@@ -6,6 +6,7 @@
 resource "aws_vpc" "vpc-webapp" {
    cidr_block = var.vpc_cidr
    enable_dns_hostnames = true
+   enable_dns_support = true
 
    tags = {
      Name = "VPC-Webapp"
@@ -24,6 +25,7 @@ resource "aws_subnet" "public-subnet" {
     availability_zone = element(var.availability_zone,count.index)
     vpc_id = aws_vpc.vpc-webapp.id
     tags = {
+        Ambiente = "Medcloud-challenge"
         name = "Subnet-public-${count.index+1}"
     }
 }
@@ -34,6 +36,7 @@ resource "aws_subnet" "private-subnet" {
     availability_zone = element(var.availability_zone,count.index)
     vpc_id = aws_vpc.vpc-webapp.id
     tags = {
+        Ambiente = "Medcloud-challenge"
         name = "Subnet-private-${count.index+1}"
     }
 }
@@ -45,6 +48,10 @@ resource "aws_route_table" "rtb-webapp-public" {
         cidr_block = "0.0.0.0/0"
         gateway_id = aws_internet_gateway.igw-vpc1.id
     }
+    tags = {
+        Ambiente = "Medcloud-challenge"
+        name = "rtb-webapp-public"
+    }
 }
 
 resource "aws_route_table_association" "rta-subnet-1" {
@@ -55,6 +62,10 @@ resource "aws_route_table_association" "rta-subnet-1" {
 
 resource "aws_route_table" "rtb-webapp-private" {
     vpc_id = aws_vpc.vpc-webapp.id
+    tags = {
+        Ambiente = "Medcloud-challenge"
+        name = "rtb-webapp-private"
+    }
 }
 
 resource "aws_route_table_association" "rta-subnet-2" {
@@ -69,6 +80,9 @@ resource "aws_security_group" "sg-web" {
     name = "secgroup-web"
     description = "Allow Web Access traffic"
     vpc_id = aws_vpc.vpc-webapp.id
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 resource "aws_security_group_rule" "web_port-80" {
@@ -102,6 +116,9 @@ resource "aws_security_group" "sg-db" {
     name = "secgroup-db"
     description = "Allow Database Access traffic"
     vpc_id = aws_vpc.vpc-webapp.id
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 resource "aws_security_group_rule" "db_port-5432" {
@@ -126,6 +143,9 @@ resource "aws_security_group" "sg-ecs" {
     name = "secgroup-ecs"
     description = "Allow Container App Access traffic"
     vpc_id = aws_vpc.vpc-webapp.id
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 resource "aws_security_group_rule" "ecs_port-8000" {
@@ -159,6 +179,9 @@ resource "aws_security_group" "sg-bastion" {
     name = "secgroup-bastion"
     description = "Allow Bastion Access"
     vpc_id = aws_vpc.vpc-webapp.id
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 resource "aws_security_group_rule" "ssh_port-22" {
@@ -190,6 +213,7 @@ resource "aws_db_subnet_group" "dbsubnetgroup" {
 }
 
 resource "aws_db_instance" "dblojaonline" {
+    identifier = var.db-identifier
     engine = var.db-engine
     engine_version = var.db-engine-version
     instance_class = var.db-instance-class
@@ -208,7 +232,6 @@ resource "aws_db_instance" "dblojaonline" {
     vpc_security_group_ids = [ aws_security_group.sg-db.id ]
     skip_final_snapshot = true
     tags = {
-        Name = "dblojaonline"
         Ambiente = "Medcloud-challenge"
     }
 }
@@ -240,7 +263,9 @@ resource "aws_instance" "bastion" {
             "PGPASSWORD=${var.db-password}  psql -h ${aws_db_instance.dblojaonline.address} -U ${var.db-username} -d ${var.db-name} < ./init-db.sql"
         ]
     }
-
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 
@@ -251,6 +276,9 @@ resource "aws_instance" "bastion" {
 resource "aws_ecr_repository" "webapp-repository" {
     name = "webapp"
     image_tag_mutability = "MUTABLE"
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 resource "aws_ecr_repository_policy" "webapp-repo-policy" {
@@ -363,7 +391,9 @@ resource "aws_ecs_task_definition" "webapp" {
     memory = 1024
     requires_compatibilities = [ "FARGATE" ]
     network_mode = "awsvpc"
-
+    tags = {
+        Ambiente = "Medcloud-challenge"
+    }
 }
 
 
@@ -382,6 +412,9 @@ resource "aws_ecs_service" "ecs-webapp" {
         target_group_arn = aws_lb_target_group.webapp.arn
         container_name = "webapp"
         container_port = "8000"
+    }
+    tags = {
+        Ambiente = "Medcloud-challenge"
     }
 }
 

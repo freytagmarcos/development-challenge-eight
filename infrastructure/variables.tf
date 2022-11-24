@@ -56,3 +56,7 @@ variable "db-instance-class" {
 variable "container_image" {
     default = "114368227931.dkr.ecr.us-east-1.amazonaws.com/webapp:latest"
 }
+
+variable "db-identifier" {
+    default = "dblojaonline"
+}
